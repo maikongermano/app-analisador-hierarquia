@@ -1,95 +1,100 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
+import React, { useState } from 'react';
+import styles from './page.module.css';
+
+interface HierarchyNodeProps {
+  word: string;
+  depth: number;
+  subcategories: HierarchyNodeProps[];
+}
+
+const initialHierarchy: HierarchyNodeProps = {
+  word: 'Animais',
+  depth: 1,
+  subcategories: []
+};
+
+const Home: React.FC = () => {
+  const [hierarchy, setHierarchy] = useState<HierarchyNodeProps>(initialHierarchy);
+
+  const addNode = (word: string, depth: number) => {
+    const addToHierarchy = (node: HierarchyNodeProps): HierarchyNodeProps => {
+      if (node.depth === depth - 1) {
+        return {
+          ...node,
+          subcategories: [...node.subcategories, { word, depth, subcategories: [] }]
+        };
+      } else {
+        return {
+          ...node,
+          subcategories: node.subcategories.map(sub => addToHierarchy(sub))
+        };
+      }
+    };
+
+    setHierarchy(prevHierarchy => addToHierarchy(prevHierarchy));
+  };
+
+  const saveHierarchy = () => {
+    const fileData = JSON.stringify(hierarchy, null, 2);
+    const blob = new Blob([fileData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'hierarchy.json';
+    link.click();
+  };
+
   return (
     <main className={styles.main}>
       <div className={styles.description}>
         <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
+          Crie e gerencie uma hierarquia de palavras
         </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
       </div>
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <div className={styles.form}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          const wordInput = (e.target as any).elements.word.value;
+          const depthInput = parseInt((e.target as any).elements.depth.value);
+          if (wordInput && depthInput) {
+            addNode(wordInput, depthInput);
+            (e.target as any).reset();
+          }
+        }}>
+          <input
+            type="text"
+            name="word"
+            placeholder="Nova palavra"
+            className={styles.input}
+            required
+          />
+          <input
+            type="number"
+            name="depth"
+            placeholder="Profundidade"
+            className={styles.input}
+            min="1"
+            required
+          />
+          <button type="submit" className={styles.button}>Adicionar Nó</button>
+        </form>
       </div>
 
       <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
+        <h2>Hierarquia Atual</h2>
+        <pre className={styles.pre}>
+          {JSON.stringify(hierarchy, null, 2)}
+        </pre>
+      </div>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+      <div className={styles.grid}>
+        <button onClick={saveHierarchy} className={styles.button}>Salvar Hierarquia</button>
       </div>
     </main>
   );
 }
+
+export default Home;
